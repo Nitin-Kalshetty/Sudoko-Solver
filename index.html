@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+	   body{
+	   text-align:center;
+	   }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Firefox */
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        #sudoko {
+            display: flex;
+            margin-left:30%;
+        }
+
+        .unsolved {
+            border: 2px solid black;
+            width: 300px;
+            height: 300px;
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            border-radius: 5px;
+        }
+
+        .solved {
+            border: 2px solid green;
+            width: 300px;
+            height: 300px;
+            margin-left: 5%;
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+        }
+
+        .Vholder {
+            box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+
+        }
+
+        .values {
+            box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+            width: 72%;
+            height: 72%;
+            font-size: 20px;
+            text-align: center;
+            font-family: sans-serif;
+            font-weight: bold;
+            color: black;
+            border-radius: 5px;
+        }
+
+        .values:hover {
+            border: 3px solid black;
+            background-color: rgb(0, 255, 247) !important;
+        }
+
+        .solveBtn {
+            border: 2px solid black;
+            display: block;
+            padding: 2px 40px;
+            margin: auto;
+            margin-top: 3%;
+            width: 50px;
+            text-align: center;
+            background-color: rgb(40, 5, 5);
+            color: white;
+            font-size: 20px;
+            font-family: sans-serif;
+            border-radius: 8px;
+
+        }
+
+        #wrong {
+            color: red;
+            font-size: 20px;
+            font-family: sans-serif;
+            font-weight: bold;
+
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Sudoko Solver</h1>
+    <p>Now you can create or solve any sudoko set.</p>
+    <div id="sudoko"></div>
+    <p id="wrong"></p>
+    <p id="nmsg"> <span id="name"></span></p>
+</body>
+
+</html>
+
+<script>
+    let stack = [];
+    let sudoko = document.querySelector("#sudoko")
+    let div = document.createElement("div")
+    div.className = "unsolved"
+    let div1 = document.createElement("div")
+    div1.className = "solved"
+    sudoko.append(div, div1)
+    let sudokoMatrix = []
+    for (let i = 0; i < 9; i++) {
+        let arr = new Array(9).fill(0);
+        sudokoMatrix.push(arr)
+    }
+
+    for (let i = 0; i < 9; i++) {
+        let innerBox = document.createElement("div")
+        innerBox.className = "Vholder";
+        for (let j = 0; j < 9; j++) {
+            let values = document.createElement("input")
+            if ((i < 3 && j >= 3 && j < 6) || (i >= 3 && j < 3 && i < 6)
+                || (i >= 3 && j >= 6 && i < 6) || (i >= 6 && j >= 3 && j < 6)) {
+                values.style.backgroundColor = "#C0C0C0";
+            }
+            values.className = "values"
+            values.setAttribute("type", "Number");
+            values.addEventListener("input", function () {
+                if (check(i, j, sudokoMatrix, values.value) == true) {
+                    sudokoMatrix[i][j] = values.value;
+                    stack.push([values, [i, j]]);
+                    values.disabled = true;
+                } else {
+                    values.style.backgroundColor = "red"
+                    let wrong = document.querySelector("#wrong")
+                    wrong.innerText = "Enter correct number it might be repeating!"
+                    values.disabled = true;
+                    setTimeout(function () {
+                        values.style.backgroundColor = null;
+                        wrong.innerText = ""
+                        values.disabled = false;
+                    }, 2000)
+                    values.value = "";
+                }
+
+            })
+            innerBox.append(values);
+        }
+        div.append(innerBox)
+    }
+    let back = document.createElement("div")
+    back.innerText = "Solve"
+    back.className = "solveBtn"
+    document.body.append(back)
+    back.addEventListener("click", function () {
+        back.innerText = "Solving"
+        sudokoSolver(sudokoMatrix, 0, 0)
+    })
+    let back1 = document.createElement("div")
+    back1.innerText = "Back"
+    back1.className = "solveBtn"
+    document.body.append(back1)
+    back1.addEventListener("click", function () {
+        if (stack.length != 0) {
+            let last = stack[stack.length - 1]
+            last[0].disabled = false;
+            last[0].value = "";
+            let i = last[1][0];
+            let j = last[1][1];
+            sudokoMatrix[i][j] = 0;
+            stack.pop();
+            console.log(sudokoMatrix)
+        }
+
+    })
+    function sudokoSolver(board, row, col) {
+        if (row == board.length) {
+            displaySolved(board, div1)
+            return false;
+        }
+        let next_row = 0;
+        let next_col = 0;
+        if (col == board.length - 1) {
+            next_row = row + 1;
+            next_col = 0;
+        } else {
+            next_row = row;
+            next_col = col + 1;
+        }
+        if (board[row][col] != 0) {
+            sudokoSolver(board, next_row, next_col)
+        } else {
+            for (let i = 1; i <= 9; i++) {
+                if (check(row, col, board, i) == true) {
+                    board[row][col] = i;
+                    let chSudoko = sudokoSolver(board, next_row, next_col)
+                    if (chSudoko == false) {
+                        return false
+                    }
+                    board[row][col] = 0
+                }
+            }
+        }
+
+    }
+
+    function displaySolved(sudokoMatrix1, div1) {
+        div1.innerHTML = ""
+        for (let i = 0; i < 9; i++) {
+            let innerBox = document.createElement("div")
+            innerBox.className = "Vholder";
+            for (let j = 0; j < 9; j++) {
+                let values = document.createElement("input")
+                values.className = "values"
+                if ((i < 3 && j >= 3 && j < 6) || (i >= 3 && j < 3 && i < 6)
+                    || (i >= 3 && j >= 6 && i < 6) || (i >= 6 && j >= 3 && j < 6)) {
+                    values.style.backgroundColor = "#C0C0C0";
+                }
+                values.value = sudokoMatrix1[i][j]
+                values.disabled = true;
+                innerBox.append(values);
+            }
+            div1.append(innerBox)
+        }
+        back.innerText = "Solved"
+    }
+
+    function check(i, j, board, num) {
+        for (let k = 0; k < 9; k++) {
+            if (board[i][k] == num && k != j) {
+                return false;
+            } else if (board[k][j] == num && k != i) {
+                return false
+            }
+        }
+        let iS, iE, jS, jE;
+        if (i < 3) {
+            iS = 0;
+            iE = 3;
+        } else if (i < 6) {
+            iS = 3;
+            iE = 6;
+        } else {
+            iS = 6;
+            iE = 9;
+        }
+        if (j < 3) {
+            jS = 0;
+            jE = 3;
+        } else if (j < 6) {
+            jS = 3;
+            jE = 6;
+        } else {
+            jS = 6;
+            jE = 9;
+        }
+        for (let k = iS; k < iE; k++) {
+            for (let l = jS; l < jE; l++) {
+                if (board[k][l] == num && k != i && l != j) {
+                    return false
+                }
+            }
+        }
+        return true;
+    }
+
+
+</script>
